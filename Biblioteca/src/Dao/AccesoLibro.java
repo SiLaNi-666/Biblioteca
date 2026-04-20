@@ -77,7 +77,7 @@ public class AccesoLibro {
             sentencia.setInt(5, anio_publicacion);
             sentencia.setInt(6, puntuacion);
 
-            insercion = sentencia.executeUpdate();
+            insertado = sentencia.executeUpdate();
 
         }catch (SQLException e){
             throw new BDException(BDException.ERROR_QUERY + e.getMessage());
@@ -88,7 +88,31 @@ public class AccesoLibro {
             }
         }
 
-        return insertado;
+        return insertado > 0;
     }
+
+    public static boolean eliminarLibro (String codigo) throws BDException{
+        Connection conexion = null;
+        int filasAfectadas;
+
+        try{
+            conexion = ConfigMySQL.abrirConexion();
+            String eliminar = "DELETE  FROM Libro WHERE codigo = ?;";
+            PreparedStatement sentencia = conexion.prepareStatement(eliminar);
+
+            sentencia.setString(1, codigo);
+            filasAfectadas = sentencia.executeUpdate();
+
+        }catch (SQLException e){
+            throw new BDException(BDException.ERROR_QUERY + e.getMessage());
+        }
+        finally {
+            if(conexion != null){
+                ConfigMySQL.cerrarConexion(conexion);
+            }
+        }
+        return filasAfectadas > 0;
+    }
+
 
 }
