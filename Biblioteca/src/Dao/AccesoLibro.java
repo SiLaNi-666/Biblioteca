@@ -1,10 +1,9 @@
 package Dao;
 
-import BD.config.ConfigMySQL;
+import BD.ConfigMySQL;
 import Excepciones.BDException;
 import Modelo.Libro;
 import Modelo.Prestamo;
-import com.mysql.cj.x.protobuf.MysqlxPrepare;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -114,5 +113,106 @@ public class AccesoLibro {
         return filasAfectadas > 0;
     }
 
+    public static List<Libro> consultarPorEscritor(String escritor) throws BDException {
+        Connection conexion = null;
+        List<Libro> lista = new ArrayList<>();
 
+        try {
+            conexion = ConfigMySQL.abrirConexion();
+            String consulta = "SELECT * FROM libro WHERE escritor = ? ORDER BY puntuacion DESC;";
+            PreparedStatement sentencia = conexion.prepareStatement(consulta);
+            sentencia.setString(1, escritor);
+
+            ResultSet rs = sentencia.executeQuery();
+
+            while (rs.next()) {
+                int codigo = rs.getInt("codigo");
+                String isbn = rs.getString("isbn");
+                String titulo = rs.getString("titulo");
+                String esc = rs.getString("escritor");
+                int anio = rs.getInt("anio_publicacion");
+                int puntuacion = rs.getInt("puntuacion");
+
+                Libro libro = new Libro(codigo, isbn, titulo, esc, anio, puntuacion);
+                lista.add(libro);
+            }
+
+        } catch (SQLException e) {
+            throw new BDException(BDException.ERROR_QUERY + e.getMessage());
+        } finally {
+            if (conexion != null) {
+                ConfigMySQL.cerrarConexion(conexion);
+            }
+        }
+        return lista;
+    }
+
+    public static List<Libro> consultarLibrosNoPrestados() throws BDException {
+        Connection conexion = null;
+        List<Libro> lista = new ArrayList<>();
+
+        try {
+            conexion = ConfigMySQL.abrirConexion();
+            // SQL: Selecciona libros que no tienen registros activos (sin fecha de devolución) en préstamo
+            String consulta = "SELECT * FROM libro WHERE codigo NOT IN (SELECT codigo_libro FROM prestamo WHERE fecha_devolucion IS NULL);";
+            PreparedStatement sentencia = conexion.prepareStatement(consulta);
+
+            ResultSet rs = sentencia.executeQuery();
+
+            while (rs.next()) {
+                int codigo = rs.getInt("codigo");
+                String isbn = rs.getString("isbn");
+                String titulo = rs.getString("titulo");
+                String escritor = rs.getString("escritor");
+                int anio = rs.getInt("anio_publicacion");
+                int puntuacion = rs.getInt("puntuacion");
+
+                lista.add(new Libro(codigo, isbn, titulo, escritor, anio, puntuacion));
+            }
+
+        } catch (SQLException e) {
+            throw new BDException(BDException.ERROR_QUERY + e.getMessage());
+        } finally {
+            if (conexion != null) {
+                ConfigMySQL.cerrarConexion(conexion);
+            }
+        }
+
+        return lista;
+    }
+
+    public static List<Libro> consultarLibrosDevueltosFecha(String fechaDevolucion) throws BDException {
+        Connection conexion = null;
+        List<Libro> lista = new ArrayList<>();
+
+        try {
+            conexion = ConfigMySQL.abrirConexion();
+            // SQL: Unimos libro y prestamo para filtrar por la fecha de devolución
+            String consulta = "SELECT l.* FROM libro l INNER JOIN prestamo p ON l.codigo = p.codigo_libro WHERE p.fecha_devolucion = ?;";
+            PreparedStatement sentencia = conexion.prepareStatement(consulta);
+            sentencia.setString(1, fechaDevolucion);
+
+            ResultSet rs = sentencia.executeQuery();
+
+            while (rs.next()) {
+                int codigo = rs.getInt("codigo");
+                String isbn = rs.getString("isbn");
+                String titulo = rs.getString("titulo");
+                String escritor = rs.getString("escritor");
+                int anio = rs.getInt("anio_publicacion");
+                int puntuacion = rs.getInt("puntuacion");
+
+                lista.add(new Libro(codigo, isbn, titulo, escritor, anio, puntuacion));
+            }
+
+        } catch (SQLException e) {
+            throw new BDException(BDException.ERROR_QUERY + e.getMessage());
+        } finally {
+            if (conexion != null) {
+                ConfigMySQL.cerrarConexion(conexion);
+            }
+        }
+
+        return lista;
+    }
 }
